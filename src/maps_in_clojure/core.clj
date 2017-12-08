@@ -126,3 +126,76 @@
 ;;   {:cats {:dana {:age 3, :color "black"}, :luke {:age 1, :color "grey"}},
 ;;    :fish {:jorge {:species "molly", :color "white"}}}},
 ;;  :anne {:name "Anne", :age 54, :pets {:birds {:allie {:age 11, :color "grey"}}}}}
+
+;; With all data types in clojure being immutable by default, there needs to be a way to
+;; handle persistent state.
+;; Clojure does this using atoms, refs and agents. We will only be talking about atoms here.
+
+;; To create an atom, the `atom` function is used on some value
+(def number-atom (atom 1))
+
+;; To access the value of the atom, it must be dereferenced with `deref`, or @ as a shortcut
+
+number-atom
+;; => #atom[1 0x1acc3266]
+
+@number-atom
+;; => 1
+
+;; To enforce general immutability, clojure makes updating an atom very explicit.
+;; By convention, any function that changes persistent state should end in an exclamtion mark
+
+;;Let's make a function to increment the number-atom:
+(defn inc-atom [atom]
+  (swap! atom inc))
+
+(inc-atom number-atom)
+;; => 2
+@number-atom
+;; => 2
+
+;; the `swap!` function is used to change an atom's value by applying a function to it.
+;;There also exists `reset!`, which is for resetting an atom's value to a given value
+;;These are analogous to `update` and `assoc` when working with maps.
+
+(reset! number-atom 1)
+@number-atom
+;;now the value is back to 1
+;; => 1
+
+;;Putting it all together
+
+;;Now with our knowledge of working with nested maps, along with our understanding of atoms,
+;;we can create a simple backend for a webapp that displays people's pets
+
+;;We need to have some sort of global state map to keep track of everyone's pets:
+
+(def state (atom {}))
+
+;; we'll initialize empty and add to it, first we need some functions that represent actions
+;; on the site
+
+(defn create-account! [name age]
+  (swap! state assoc name {:age age}))
+
+(defn delete-account! [name]
+  (swap! state dissoc name))
+
+(defn add-pet! [name animal pet-info]
+  (swap! state assoc-in [name :pets animal] pet-info))
+
+;;@state
+;; => {}
+
+(create-account! :braden 22)
+
+;;@state
+;; => {:braden {:age 22}}
+(add-pet! :braden :bird {:name "Dante" :age 13 :color "red"})
+
+;;@state
+;; => {:braden {:pets {:bird {:name "Dante", :age 13, :color "red"}}}}
+
+(delete-account! :braden)
+;;@state
+;; => {}
